@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kishor Tambe — AI Voice Bot</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #050509;
+  --surface: #0c0c14;
+  --card:    #111120;
+  --border:  #1c1c2e;
+  --accent:  #3b82f6;
+  --green:   #10b981;
+  --amber:   #f59e0b;
+  --text:    #e2e8f0;
+  --muted:   #4b5563;
+  --dim:     #1e293b;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px 48px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Grid bg */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+}
+
+/* Glow blobs */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 50% 35% at 10% 10%, rgba(59,130,246,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 90% 90%, rgba(16,185,129,0.06) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.page { width: 100%; max-width: 680px; position: relative; z-index: 1; display: flex; flex-direction: column; gap: 14px; }
+
+/* ─── HEADER ─── */
+.header {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.header::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--green), var(--accent));
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+}
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+.av {
+  width: 64px; height: 64px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1e3a5f, #0f2d40);
+  border: 1px solid rgba(59,130,246,0.4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 700; color: var(--accent);
+  font-family: 'JetBrains Mono', monospace;
+  flex-shrink: 0;
+  letter-spacing: -1px;
+}
+
+.hinfo { flex: 1; min-width: 0; }
+.hinfo h1 { font-size: 24px; font-weight: 700; letter-spacing: 1px; line-height: 1; }
+.hinfo .role { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); margin-top: 5px; letter-spacing: 1px; }
+.hinfo .loc { font-size: 13px; color: var(--muted); margin-top: 6px; }
+
+.online {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  flex-shrink: 0;
+}
+.online-dot {
+  width: 10px; height: 10px;
+  background: var(--green); border-radius: 50%;
+  animation: glow 2s ease-in-out infinite;
+}
+@keyframes glow {
+  0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.6); }
+  50%      { box-shadow: 0 0 0 7px rgba(16,185,129,0); }
+}
+.online span { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--green); letter-spacing: 2px; }
+
+/* ─── SKILL STRIP ─── */
+.skills {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.sk {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 3px 9px;
+  border-radius: 3px;
+  border: 1px solid;
+  letter-spacing: 0.5px;
+}
+.sk.b { border-color: rgba(59,130,246,0.4); color: #60a5fa; background: rgba(59,130,246,0.06); }
+.sk.g { border-color: rgba(16,185,129,0.4); color: #34d399; background: rgba(16,185,129,0.06); }
+.sk.a { border-color: rgba(245,158,11,0.4); color: #fbbf24; background: rgba(245,158,11,0.06); }
+.sk.r { border-color: rgba(239,68,68,0.4);  color: #f87171; background: rgba(239,68,68,0.06); }
+
+/* ─── ORB PANEL ─── */
+.orb-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 36px 24px 28px;
+  display: flex; flex-direction: column; align-items: center; gap: 20px;
+}
+
+.orb-wrap {
+  position: relative;
+  width: 150px; height: 150px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+
+.ring {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 1px solid rgba(59,130,246,0.15);
+  animation: expand 3s ease-out infinite; opacity: 0;
+}
+.ring:nth-child(2) { animation-delay: 1s; }
+.ring:nth-child(3) { animation-delay: 2s; }
+@keyframes expand {
+  0%   { transform: scale(0.6); opacity: 0.5; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+.ring.L { border-color: rgba(16,185,129,0.4); animation-duration: 1s; }
+.ring.S { border-color: rgba(59,130,246,0.5); animation-duration: 0.8s; }
+
+.orb {
+  width: 110px; height: 110px; border-radius: 50%;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px;
+  position: relative; z-index: 2;
+  transition: all 0.3s;
+  user-select: none;
+}
+.orb:hover { border-color: var(--accent); transform: scale(1.04); }
+.orb.L {
+  border-color: var(--green);
+  box-shadow: 0 0 40px rgba(16,185,129,0.25), inset 0 0 30px rgba(16,185,129,0.05);
+  animation: breathe 0.7s ease-in-out infinite alternate;
+}
+.orb.S {
+  border-color: var(--accent);
+  box-shadow: 0 0 40px rgba(59,130,246,0.25), inset 0 0 30px rgba(59,130,246,0.05);
+}
+@keyframes breathe { from { transform: scale(1); } to { transform: scale(1.06); } }
+
+.orb-hint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--muted);
+  letter-spacing: 3px; text-align: center;
+}
+
+/* Waveform */
+.wave {
+  display: flex; align-items: center; gap: 3px;
+  height: 36px; opacity: 0; transition: opacity 0.3s;
+}
+.wave.on { opacity: 1; }
+.bar {
+  width: 3px; border-radius: 2px;
+  background: var(--green);
+  animation: dance 0.7s ease-in-out infinite alternate;
+}
+.bar:nth-child(1){height:6px;  animation-delay:0.0s}
+.bar:nth-child(2){height:14px; animation-delay:0.1s}
+.bar:nth-child(3){height:22px; animation-delay:0.2s}
+.bar:nth-child(4){height:34px; animation-delay:0.3s}
+.bar:nth-child(5){height:26px; animation-delay:0.4s}
+.bar:nth-child(6){height:34px; animation-delay:0.5s}
+.bar:nth-child(7){height:18px; animation-delay:0.6s}
+.bar:nth-child(8){height:28px; animation-delay:0.7s}
+.bar:nth-child(9){height:10px; animation-delay:0.8s}
+.bar:nth-child(10){height:20px;animation-delay:0.9s}
+.wave.speak .bar { background: var(--accent); }
+@keyframes dance { from{transform:scaleY(0.2)} to{transform:scaleY(1)} }
+
+.vstatus {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--muted);
+  letter-spacing: 1px; text-align: center;
+  min-height: 18px; transition: color 0.3s;
+}
+.vstatus.L { color: var(--green); }
+.vstatus.S { color: var(--accent); }
+
+.tbox {
+  width: 100%;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 13px 16px;
+  min-height: 48px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; color: var(--muted);
+  font-style: italic; text-align: center;
+  line-height: 1.6; transition: all 0.3s;
+}
+.tbox.on { color: var(--text); font-style: normal; border-color: rgba(16,185,129,0.25); }
+
+/* ─── QUICK BTNS ─── */
+.quickrow { display: flex; flex-wrap: wrap; gap: 7px; }
+.qb {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 0.5px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 6px; padding: 7px 13px;
+  color: var(--muted); cursor: pointer;
+  transition: all 0.18s;
+}
+.qb:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+
+/* ─── CHAT ─── */
+.chat-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px; overflow: hidden;
+}
+.chat-top {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--muted); letter-spacing: 2px;
+  display: flex; align-items: center; gap: 8px;
+}
+.chat-log {
+  max-height: 320px; overflow-y: auto;
+  padding: 16px; display: flex; flex-direction: column; gap: 12px;
+  scroll-behavior: smooth;
+}
+.chat-log::-webkit-scrollbar { width: 2px; }
+.chat-log::-webkit-scrollbar-thumb { background: var(--border); }
+
+.msg { display: flex; flex-direction: column; max-width: 90%; animation: up 0.3s ease; }
+@keyframes up { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.msg.u { align-self: flex-end; align-items: flex-end; }
+.msg.b { align-self: flex-start; align-items: flex-start; }
+.mlabel { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-bottom: 4px; }
+.bubble { padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.6; font-weight: 500; }
+.msg.u .bubble { background: #1a1f3a; border: 1px solid rgba(59,130,246,0.2); border-bottom-right-radius: 3px; color: #93c5fd; }
+.msg.b .bubble { background: #0d1f18; border: 1px solid rgba(16,185,129,0.15); border-bottom-left-radius: 3px; }
+
+.dots { display:flex; gap:4px; padding:10px 14px; align-items:center; }
+.dot  { width:6px; height:6px; background:var(--green); border-radius:50%; animation:bounce 1s ease-in-out infinite; }
+.dot:nth-child(2){animation-delay:.15s}
+.dot:nth-child(3){animation-delay:.3s}
+@keyframes bounce { 0%,60%,100%{transform:translateY(0);opacity:.3} 30%{transform:translateY(-5px);opacity:1} }
+
+/* ─── INPUT ─── */
+.input-row {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 16px;
+  display: flex; gap: 10px; align-items: center;
+}
+#ti {
+  flex:1; background:transparent; border:none;
+  color:var(--text); font-family:'Rajdhani',sans-serif;
+  font-size:15px; font-weight:500; outline:none;
+}
+#ti::placeholder { color:var(--muted); }
+.sbtn {
+  background: linear-gradient(135deg, var(--accent), #6366f1);
+  border:none; border-radius:8px;
+  width:38px; height:38px;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; font-size:15px;
+  transition:all 0.2s; flex-shrink:0;
+}
+.sbtn:hover { transform:scale(1.1); }
+.sbtn:disabled { opacity:0.3; cursor:not-allowed; transform:none; }
+
+/* ─── WARN ─── */
+.warn {
+  background: rgba(245,158,11,0.08);
+  border: 1px solid rgba(245,158,11,0.25);
+  border-radius: 10px; padding: 10px 14px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px; color:#fbbf24; display:none;
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="av">KT</div>
+    <div class="hinfo">
+      <h1>KISHOR TAMBE</h1>
+      <div class="role">DATA ANALYST · PYTHON · SQL · POWER BI</div>
+      <div class="loc">📍 Pune, India &nbsp;·&nbsp; MCA @ Sinhgad &nbsp;·&nbsp; BCA 8.06 CGPA</div>
+    </div>
+    <div class="online">
+      <div class="online-dot"></div>
+      <span>LIVE</span>
+    </div>
+  </div>
+
+  <!-- Skills -->
+  <div class="skills">
+    <span class="sk b">Python</span>
+    <span class="sk b">Pandas</span>
+    <span class="sk b">NumPy</span>
+    <span class="sk b">Matplotlib</span>
+    <span class="sk b">Seaborn</span>
+    <span class="sk g">SQL</span>
+    <span class="sk g">EDA</span>
+    <span class="sk g">Data Cleaning</span>
+    <span class="sk g">Statistical Analysis</span>
+    <span class="sk a">Power BI</span>
+    <span class="sk a">Tableau</span>
+    <span class="sk r">Machine Learning</span>
+    <span class="sk r">scikit-learn</span>
+    <span class="sk r">K-Means</span>
+    <span class="sk r">Regression</span>
+  </div>
+
+  <!-- Warning -->
+  <div class="warn" id="warn">⚠️ Voice not supported in this browser. Use the text input below instead.</div>
+
+  <!-- Orb Panel -->
+  <div class="orb-panel">
+    <div class="orb-wrap" onclick="toggleVoice()" title="Click to speak">
+      <div class="ring" id="r1"></div>
+      <div class="ring" id="r2"></div>
+      <div class="ring" id="r3"></div>
+      <div class="orb" id="orb">🎙️</div>
+    </div>
+
+    <div class="orb-hint" id="hint">TAP MIC · SPEAK · GET ANSWER</div>
+
+    <div class="wave" id="wave">
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div>
+    </div>
+
+    <div class="vstatus" id="vs">Click the mic and ask me anything</div>
+    <div class="tbox" id="tbox">Your spoken question will appear here...</div>
+  </div>
+
+  <!-- Quick Buttons -->
+  <div class="quickrow">
+    <button class="qb" onclick="ask('Introduce yourself')">👋 INTRODUCE</button>
+    <button class="qb" onclick="ask('What are your technical skills?')">🛠️ SKILLS</button>
+    <button class="qb" onclick="ask('Tell me about your Zomato EDA project')">📊 ZOMATO PROJECT</button>
+    <button class="qb" onclick="ask('Tell me about your Amazon web scraping project')">🛒 AMAZON PROJECT</button>
+    <button class="qb" onclick="ask('What is your education background?')">🎓 EDUCATION</button>
+    <button class="qb" onclick="ask('Tell me about your internship experience')">💼 EXPERIENCE</button>
+    <button class="qb" onclick="ask('What certifications do you have?')">📜 CERTIFICATIONS</button>
+    <button class="qb" onclick="ask('What do you know about SQL?')">🗄️ SQL</button>
+    <button class="qb" onclick="ask('What tools do you use for data visualization?')">📈 VISUALIZATION</button>
+    <button class="qb" onclick="ask('Why should I hire you?')">🌟 WHY HIRE ME?</button>
+    <button class="qb" onclick="ask('What is your contact information?')">📞 CONTACT</button>
+    <button class="qb" onclick="ask('What are your career goals?')">🎯 GOALS</button>
+  </div>
+
+  <!-- Chat -->
+  <div class="chat-panel">
+    <div class="chat-top">💬 &nbsp; CONVERSATION LOG</div>
+    <div class="chat-log" id="log">
+      <div class="msg b">
+        <div class="mlabel">KISHOR'S BOT</div>
+        <div class="bubble">Hello! I'm Kishor Tambe's personal AI voice bot. Tap the mic and ask me anything — my skills, projects, experience, or why you should hire me. I'll speak my answer back to you!</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Text Input -->
+  <div class="input-row">
+    <input id="ti" type="text" placeholder="Type your question here and press Enter..." onkeydown="if(event.key==='Enter')ask()" />
+    <button class="sbtn" onclick="ask()">➤</button>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  KISHOR'S COMPLETE PROFILE — KNOWLEDGE BASE
+// ══════════════════════════════════════════════
+const PROFILE = {
+  name: "Kishor Tambe",
+  title: "Data Analyst | Python | SQL | Power BI",
+  email: "kishortambe2242003@gmail.com",
+  phone: "7028869816",
+  location: "Pune, India",
+  linkedin: "linkedin.com/in/kishor-tambe-260aaa264",
+  kaggle: "kaggle.com/kishortambe22",
+
+  summary: "Entry-Level Data Analyst with strong foundation in Python, SQL, Data Cleaning, and Exploratory Data Analysis. Experienced in building interactive dashboards using Power BI and performing statistical analysis to derive actionable business insights. Passionate about transforming raw data into meaningful insights for data-driven decision making.",
+
+  education: [
+    { degree: "Master of Computer Applications (MCA)", institute: "Sinhgad Institute Of Management", year: "2024–2026, Currently Pursuing" },
+    { degree: "Bachelor of Computer Applications (BCA)", institute: "Savitribai Phule Pune University", year: "2021–2024", cgpa: "8.06" }
+  ],
+
+  skills: {
+    programming: ["Python", "Pandas", "NumPy", "Matplotlib", "Seaborn"],
+    concepts: ["Data Cleaning", "EDA", "Statistical Analysis", "Data Modeling"],
+    ml: ["Regression", "Clustering (K-Means)", "scikit-learn"],
+    database: ["SQL", "Joins", "Subqueries", "Aggregations"],
+    visualization: ["Power BI", "Tableau"]
+  },
+
+  experience: [
+    { role: "Data Analyst Intern", company: "GIGANTE TECHNOLOGIES", location: "Pune", period: "February 2026 – Present" }
+  ],
+
+  projects: [
+    {
+      name: "Zomato EDA",
+      tools: "Python, Pandas, NumPy, Matplotlib, Seaborn, SQL",
+      points: [
+        "Cleaned and preprocessed 9000+ restaurant records",
+        "Performed univariate and bivariate analysis to identify rating and pricing patterns",
+        "Engineered features to segment restaurants by price range and rating thresholds",
+        "Used SQL queries with joins and aggregations for structured data analysis",
+        "Summarized key findings with actionable insights on restaurant performance and customer preferences"
+      ]
+    },
+    {
+      name: "Unveiling Market Trends — EDA on Amazon Product Data through Web Scraping",
+      tools: "Python, Web Scraping",
+      points: [
+        "Scraped product data including price, ratings, and reviews using Python",
+        "Cleaned and analyzed dataset to identify pricing trends and consumer behavior patterns",
+        "Generated insights to understand competitive market positioning"
+      ]
+    }
+  ],
+
+  certifications: [
+    "Artificial Intelligence: Concepts and Techniques — NPTEL",
+    "Machine Learning for Data Science Projects — IBM",
+    "Deep Learning with Python (Convolutional Neural Networks — CNN)"
+  ]
+};
+
+// ══════════════════════════════════════════════
+//  SMART LOCAL RESPONSE ENGINE
+//  (No external API needed — works on GitHub!)
+// ══════════════════════════════════════════════
+function getResponse(q) {
+  const t = q.toLowerCase();
+
+  // Greetings
+  if (/^(hi|hello|hey|howdy|good\s*(morning|evening|afternoon))/.test(t))
+    return `Hello! I'm Kishor Tambe's personal AI bot. I'm here to tell you all about Kishor — his skills, projects, experience, and more. What would you like to know?`;
+
+  // Introduction
+  if (/introduc|who are you|tell me about yourself|about kishor|yourself/.test(t))
+    return `I'm Kishor Tambe — a passionate Data Analyst based in Pune, India. I have a strong foundation in Python, SQL, and data visualization tools like Power BI and Tableau. I'm currently pursuing my MCA at Sinhgad Institute of Management while working as a Data Analyst Intern at Gigante Technologies. I love transforming raw data into meaningful business insights!`;
+
+  // Skills
+  if (/skill|tech|know|expertise|good at|proficient|capable/.test(t)) {
+    if (/sql|database|query/.test(t))
+      return `I have solid SQL skills including complex joins, subqueries, and aggregations. I've used SQL extensively in my Zomato EDA project to extract and analyze structured data from large datasets.`;
+    if (/python/.test(t))
+      return `Python is my primary programming language. I work regularly with Pandas for data manipulation, NumPy for numerical analysis, and Matplotlib and Seaborn for data visualization.`;
+    if (/power.?bi|tableau|visual/.test(t))
+      return `I build interactive dashboards using Power BI and Tableau. I'm experienced in translating complex data into clear visual stories that help businesses make data-driven decisions.`;
+    if (/machine.?learn|ml|ai|model/.test(t))
+      return `In machine learning I work with scikit-learn and have hands-on experience with regression models and K-Means clustering for data segmentation and predictive analysis.`;
+    return `My core technical skills include Python with Pandas, NumPy, Matplotlib, and Seaborn. I'm proficient in SQL for database queries, Power BI and Tableau for visualization, and scikit-learn for machine learning tasks like regression and K-Means clustering. I also have strong foundations in data cleaning, EDA, and statistical analysis.`;
+  }
+
+  // Projects
+  if (/project|built|created|work on|portfolio/.test(t)) {
+    if (/zomato|restaurant|food/.test(t))
+      return `My Zomato EDA project involved cleaning and analyzing over 9000 restaurant records using Python and SQL. I performed univariate and bivariate analysis to uncover rating and pricing patterns, engineered features to segment restaurants by price range, and delivered actionable insights on restaurant performance and customer preferences.`;
+    if (/amazon|scraping|web.?scrap|market|product/.test(t))
+      return `In my Amazon web scraping project I used Python to scrape product data including prices, ratings, and reviews. I then cleaned and analyzed the dataset to identify pricing trends and consumer behavior patterns, helping understand competitive market positioning.`;
+    return `I have two main projects. First, a Zomato EDA where I cleaned 9000+ restaurant records and uncovered rating and pricing insights using Python and SQL. Second, an Amazon Market Trends project where I scraped and analyzed product data to understand pricing patterns and consumer behavior. Both projects demonstrate my end-to-end data analysis skills.`;
+  }
+
+  // Education
+  if (/educat|degree|college|university|study|bca|mca|qualification|academic/.test(t))
+    return `I completed my Bachelor of Computer Applications from Savitribai Phule Pune University with a CGPA of 8.06. I'm currently pursuing my Master of Computer Applications at Sinhgad Institute of Management, which I started in 2024 and expect to complete in 2026.`;
+
+  // Experience
+  if (/experience|intern|job|work|company|gigante/.test(t))
+    return `I'm currently working as a Data Analyst Intern at Gigante Technologies in Pune, where I started in February 2026. I'm gaining hands-on experience in real-world data analysis, helping the team derive insights from business data.`;
+
+  // Certifications
+  if (/certif|course|nptel|ibm|cnn|deep.?learn/.test(t))
+    return `I have three certifications: Artificial Intelligence Concepts and Techniques from NPTEL, Machine Learning for Data Science Projects from IBM, and Deep Learning with Python covering Convolutional Neural Networks. These certifications reflect my commitment to staying current with AI and machine learning.`;
+
+  // Contact
+  if (/contact|email|phone|reach|linkedin|kaggle|number/.test(t))
+    return `You can reach me at kishortambe2242003@gmail.com or call me at 7028869816. You can also find me on LinkedIn at linkedin.com/in/kishor-tambe-260aaa264 and on Kaggle at kaggle.com/kishortambe22. I'm always open to new opportunities!`;
+
+  // Why hire
+  if (/hire|recruit|why you|choose|offer|opportunity|join/.test(t))
+    return `You should hire me because I bring a combination of strong technical skills and genuine passion for data. I've already worked on real-world projects with 9000+ records, I'm currently gaining professional experience as a Data Analyst Intern, and I hold certifications from NPTEL and IBM. I'm a fast learner who is hungry to grow and contribute meaningfully from day one.`;
+
+  // Goals
+  if (/goal|future|plan|aspir|dream|career|next/.test(t))
+    return `My goal is to grow into a full-stack data analyst and eventually a data scientist role where I can work on impactful machine learning projects. I want to specialize in predictive analytics and business intelligence, helping organizations make smarter data-driven decisions.`;
+
+  // EDA
+  if (/eda|exploratory|analysis|analyse|analyze/.test(t))
+    return `Exploratory Data Analysis is one of my core strengths. I use Python with Pandas, Matplotlib, and Seaborn to understand data distributions, find patterns, handle missing values, and uncover actionable insights before any modeling or reporting.`;
+
+  // Strength / weakness
+  if (/strength|best at|strongest/.test(t))
+    return `My greatest strength is turning messy, raw data into clear and actionable insights. I'm detail-oriented, I enjoy problem-solving, and I'm comfortable working across the full data pipeline — from data cleaning all the way to dashboard creation in Power BI.`;
+
+  // Default
+  return `That's a great question! I'm Kishor Tambe — a Data Analyst with skills in Python, SQL, Power BI, and machine learning. I've worked on Zomato EDA and Amazon web scraping projects, and I'm currently interning at Gigante Technologies in Pune. Feel free to ask me about my skills, projects, education, or experience — I'd love to tell you more!`;
+}
+
+// ══════════════════════════════════════════════
+//  VOICE — MALE VOICE FORCED
+// ══════════════════════════════════════════════
+let voices = [];
+let maleVoice = null;
+
+function loadVoices() {
+  voices = window.speechSynthesis.getVoices();
+  // Priority list for male voices
+  const maleKeywords = ['david', 'mark', 'daniel', 'james', 'guy', 'male', 'man', 'alex', 'fred', 'ralph', 'bruce', 'albert', 'bad', 'junior', 'bob'];
+  maleVoice =
+    voices.find(v => maleKeywords.some(k => v.name.toLowerCase().includes(k)) && v.lang.startsWith('en')) ||
+    voices.find(v => v.name.toLowerCase().includes('google uk english male')) ||
+    voices.find(v => v.name.toLowerCase().includes('microsoft david')) ||
+    voices.find(v => v.name.toLowerCase().includes('microsoft mark')) ||
+    voices.find(v => v.lang === 'en-US' && v.name.toLowerCase().includes('male')) ||
+    voices.find(v => v.lang.startsWith('en-') && !v.name.toLowerCase().includes('female') && !v.name.toLowerCase().includes('woman') && !['zira','susan','hazel','victoria','karen','moira','fiona','tessa','veena','samantha'].some(f => v.name.toLowerCase().includes(f))) ||
+    voices.find(v => v.lang.startsWith('en')) ||
+    voices[0];
+}
+
+if (window.speechSynthesis) {
+  loadVoices();
+  window.speechSynthesis.onvoiceschanged = loadVoices;
+}
+
+function speakText(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const clean = text.replace(/[*_#`•\n]/g, ' ').replace(/\s+/g,' ').trim();
+  const u = new SpeechSynthesisUtterance(clean);
+  if (maleVoice) u.voice = maleVoice;
+  u.lang  = 'en-US';
+  u.rate  = 0.95;
+  u.pitch = 0.85; // Lower pitch = more masculine
+  u.volume = 1;
+  u.onstart = () => setSpeaking();
+  u.onend   = () => setIdle();
+  u.onerror = () => setIdle();
+  setSpeaking();
+  window.speechSynthesis.speak(u);
+}
+
+function stopSpeaking() {
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+}
+
+// ══════════════════════════════════════════════
+//  SPEECH RECOGNITION
+// ══════════════════════════════════════════════
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recog = null;
+let isListening = false;
+let isSpeaking  = false;
+
+if (!SR) document.getElementById('warn').style.display = 'block';
+
+function buildRecog() {
+  if (!SR) return null;
+  const r = new SR();
+  r.continuous = false;
+  r.interimResults = true;
+  r.lang = 'en-IN';
+  r.onresult = (e) => {
+    let interim='', final='';
+    for (let i=e.resultIndex; i<e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    const shown = final || interim;
+    setTbox(shown, !!shown);
+    if (final) { stopListening(); processQ(final); }
+  };
+  r.onerror = (e) => { stopListening(); if(e.error!=='aborted') setVS('Could not hear. Try again.',''); };
+  r.onend   = () => { if (isListening) stopListening(); };
+  return r;
+}
+
+function toggleVoice() {
+  if (!SR) return;
+  if (isSpeaking) { stopSpeaking(); setIdle(); return; }
+  if (isListening) stopListening();
+  else startListening();
+}
+
+function startListening() {
+  stopSpeaking();
+  recog = buildRecog();
+  if (!recog) return;
+  isListening = true;
+  setTbox('Listening...', false);
+  setListening();
+  try { recog.start(); } catch(e) {}
+}
+
+function stopListening() {
+  isListening = false;
+  if (recog) { try { recog.stop(); } catch(e) {} }
+  setIdle();
+}
+
+// ══════════════════════════════════════════════
+//  UI STATE HELPERS
+// ══════════════════════════════════════════════
+const orbEl  = document.getElementById('orb');
+const hintEl = document.getElementById('hint');
+const vsEl   = document.getElementById('vs');
+const waveEl = document.getElementById('wave');
+const tboxEl = document.getElementById('tbox');
+const [r1,r2,r3] = [document.getElementById('r1'),document.getElementById('r2'),document.getElementById('r3')];
+
+function setListening() {
+  orbEl.className='orb L'; orbEl.textContent='🎙️';
+  hintEl.textContent='LISTENING — SPEAK NOW';
+  vsEl.textContent="I'm listening..."; vsEl.className='vstatus L';
+  waveEl.className='wave on';
+  [r1,r2,r3].forEach(r=>r.className='ring L');
+}
+function setSpeaking() {
+  isSpeaking=true;
+  orbEl.className='orb S'; orbEl.textContent='🔊';
+  hintEl.textContent='TAP TO STOP';
+  vsEl.textContent='Speaking...'; vsEl.className='vstatus S';
+  waveEl.className='wave on speak';
+  [r1,r2,r3].forEach(r=>r.className='ring S');
+}
+function setIdle() {
+  isListening=false; isSpeaking=false;
+  orbEl.className='orb'; orbEl.textContent='🎙️';
+  hintEl.textContent='TAP MIC · SPEAK · GET ANSWER';
+  vsEl.textContent='Click the mic and ask me anything'; vsEl.className='vstatus';
+  waveEl.className='wave';
+  [r1,r2,r3].forEach(r=>r.className='ring');
+}
+function setVS(msg,cls){ vsEl.textContent=msg; vsEl.className='vstatus '+cls; }
+function setTbox(txt,on){ tboxEl.textContent=txt; tboxEl.className='tbox'+(on?' on':''); }
+
+// ══════════════════════════════════════════════
+//  PROCESS QUESTION & RESPOND
+// ══════════════════════════════════════════════
+function processQ(question) {
+  addMsg('u', question);
+  const typing = addTyping();
+  setVS('Thinking...','');
+
+  setTimeout(() => {
+    const reply = getResponse(question);
+    typing.remove();
+    addMsg('b', reply);
+    speakText(reply);
+  }, 600); // Small delay feels natural
+}
+
+function ask(text) {
+  const q = text || document.getElementById('ti').value.trim();
+  if (!q) return;
+  document.getElementById('ti').value = '';
+  setTbox(q, true);
+  processQ(q);
+}
+
+// ══════════════════════════════════════════════
+//  CHAT UI
+// ══════════════════════════════════════════════
+const log = document.getElementById('log');
+
+function addMsg(role, text) {
+  const d = document.createElement('div');
+  d.className = 'msg ' + role;
+  const l = document.createElement('div');
+  l.className = 'mlabel';
+  l.textContent = role==='u' ? 'YOU' : "KISHOR'S BOT";
+  const b = document.createElement('div');
+  b.className = 'bubble';
+  b.textContent = text;
+  d.appendChild(l); d.appendChild(b);
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
+  return d;
+}
+
+function addTyping() {
+  const d = document.createElement('div');
+  d.className = 'msg b';
+  const l = document.createElement('div');
+  l.className = 'mlabel'; l.textContent = "KISHOR'S BOT";
+  const b = document.createElement('div');
+  b.className = 'bubble';
+  b.innerHTML = '<div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  d.appendChild(l); d.appendChild(b);
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
+  return d;
+}
+</script>
+</body>
+</html>
